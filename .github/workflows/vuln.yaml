@@ -1,24 +1,16 @@
-name: Vulnerability Check
+name: Build PR
 
 on:
   pull_request_target:
     paths:
       - 'app/**'
 
-concurrency:
-  group: vuln-check-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
-permissions:
-  contents: read
-
-env:
-  NODE_VERSION: 20
-
 jobs:
-  vuln-build:
-    name: Build PR (with pnpm cache)
+  build:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout PR merged code (fork included)
@@ -28,36 +20,26 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4.4.0
-
-      - name: Setup Node
-        uses: actions/setup-node@v6.3.0
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: 20
           cache: npm
 
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v5.0.4
+      # Cache Next.js / build output (if exists)
+      - name: Cache build
+        uses: actions/cache@v5
         with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}-v1
+          path: |
+            .next/cache
+            dist
+            build
+          key: ${{ runner.os }}-build-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+            ${{ runner.os }}-build-
 
       - name: Install dependencies
-        shell: bash
-        run: pnpm install --frozen-lockfile
+        run: npm ci || npm install
 
       - name: Build project
-        run: pnpm run build
-
-      - name: Run vuln check
-        run: |
-          echo "Running vuln.yaml check..."
-          cat vuln.yaml
+        run: npm run build

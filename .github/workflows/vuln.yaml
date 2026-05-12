@@ -34,9 +34,9 @@ jobs:
             .next/cache
             dist
             build
-          key: ${{ runner.os }}-build-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-nextjss-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-build-
+            ${{ runner.os }}-nextjss-
 
       - name: Install dependencies
         run: npm ci || npm install
